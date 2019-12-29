@@ -9,7 +9,7 @@
 #'
 #' @export
 #'
-sti_trans <- function(dat, at) {
+gon_trans <- function(dat, at) {
   
   # Parameters ----------------------------------------------------------
   
@@ -78,100 +78,177 @@ sti_trans <- function(dat, at) {
   # ins = 1 : p1 is insertive
   # ins = 2 : both p1 and p2 are insertive
   
+  # Rectal GC ---------------------------------------------
   
-  # Rectal GC -----------------------------------------------------------
-  
+  # Rectal infection from urethra -----------------------------------------------------------
   # Requires: uGC in insertive man, and no rGC in receptive man
-  p1Inf_rgc <- which(uGC[al[, "p1"]] == 1 & uGC.infTime[al[, "p1"]] < at &
+  p1Inf_rugc <- which(uGC[al[, "p1"]] == 1 & uGC.infTime[al[, "p1"]] < at &
                        rGC[al[, "p2"]] == 0 & al[, "ins"] %in% c(1, 2))
-  p2Inf_rgc <- which(uGC[al[, "p2"]] == 1 & uGC.infTime[al[, "p2"]] < at &
+  p2Inf_rugc <- which(uGC[al[, "p2"]] == 1 & uGC.infTime[al[, "p2"]] < at &
                        rGC[al[, "p1"]] == 0 & al[, "ins"] %in% c(0, 2))
-  allActs_rgc <- c(p1Inf_rgc, p2Inf_rgc)
+  allActs_rugc <- c(p1Inf_rugc, p2Inf_rugc)
   
   # UAI modifier
-  uai_rgc <- al[, "uai"][allActs_rgc]
-  tprob_rgc <- rep(rgc.tprob, length(allActs_rgc))
-  tprob_rgc[uai_rgc == 0] <- tprob_rgc[uai_rgc == 0] * sti.cond.rr
+  uai_rugc <- al[, "uai"][allActs_rugc]
+  tprob_rugc <- rep(rugc.tprob, length(allActs_rugc))
+  tprob_rugc[uai_rugc == 0] <- tprob_rugc[uai_rugc == 0] * sti.cond.rr
   
   # Stochastic transmission
-  trans_rgc <- rbinom(length(allActs_rgc), 1, tprob_rgc)
+  trans_rugc <- rbinom(length(allActs_rugc), 1, tprob_rugc)
   
   # Determine the infected partner
-  idsInf_rgc <- NULL
-  if (sum(trans_rgc) > 0) {
-    transAL_rgc <- al[allActs_rgc[trans_rgc == 1], , drop = FALSE]
-    idsInf_rgc <- unique(ifelse(uGC[transAL_rgc[, "p1"]] == 1,
-                                transAL_rgc[, "p2"], transAL_rgc[, "p1"]))
+  idsInf_rugc <- NULL
+  if (sum(trans_rugc) > 0) {
+    transAL_rugc <- al[allActs_rugc[trans_rugc == 1], , drop = FALSE]
+    idsInf_rugc <- unique(ifelse(uGC[transAL_rugc[, "p1"]] == 1,
+                                transAL_rugc[, "p2"], transAL_rugc[, "p1"]))
   }
   
+  # Rectal infection from pharynx -----------------------------------------------------------
+  # Requires: pGC in insertive man, and no rGC in receptive man
+  p1Inf_rpgc <- which(pGC[al[, "p1"]] == 1 & pGC.infTime[al[, "p1"]] < at &
+                        rGC[al[, "p2"]] == 0 & al[, "ins"] %in% c(1, 2))
+  p2Inf_rpgc <- which(pGC[al[, "p2"]] == 1 & pGC.infTime[al[, "p2"]] < at &
+                        rGC[al[, "p1"]] == 0 & al[, "ins"] %in% c(0, 2))
+  allActs_rpgc <- c(p1Inf_rpgc, p2Inf_rpgc)
+  
+  # UAI modifier
+  uai_rpgc <- al[, "uai"][allActs_rpgc]
+  tprob_rpgc <- rep(rpgc.tprob, length(allActs_rpgc))
+  tprob_rpgc[uai_rpgc == 0] <- tprob_rpgc[uai_rpgc == 0] * sti.cond.rr
+  
+  # Stochastic transmission
+  trans_rpgc <- rbinom(length(allActs_rpgc), 1, tprob_rpgc)
+  
+  # Determine the infected partner
+  idsInf_rpgc <- NULL
+  if (sum(trans_rpgc) > 0) {
+    transAL_rpgc <- al[allActs_rpgc[trans_rpgc == 1], , drop = FALSE]
+    idsInf_rpgc <- unique(ifelse(pGC[transAL_rpgc[, "p1"]] == 1,
+                                 transAL_rpgc[, "p2"], transAL_rpgc[, "p1"]))
+  }
+
   # Update attributes
+  idsInf_rgc <- unique(c(idsInf_rugc, idsInf_rpgc))
   rGC[idsInf_rgc] <- 1
   rGC.infTime[idsInf_rgc] <- at
-  rGC.sympt[idsInf_rgc] <- rbinom(length(idsInf_rgc), 1, rgc.sympt.prob)
+  rGC.sympt[idsInf_rugc] <- rbinom(length(idsInf_rugc), 1, rgc.sympt.prob)
   rGC.timesInf[idsInf_rgc] <- rGC.timesInf[idsInf_rgc] + 1
   
   
   # Urethral GC ---------------------------------------------------------
   
+  # Urethral infection from rectum
   # Requires: rGC in receptive man, and no uGC in insertive man
-  p1Inf_ugc <- which(rGC[al[, "p1"]] == 1 & rGC.infTime[al[, "p1"]] < at &
+  p1Inf_urgc <- which(rGC[al[, "p1"]] == 1 & rGC.infTime[al[, "p1"]] < at &
                        uGC[al[, "p2"]] == 0 & al[, "ins"] %in% c(0, 2))
-  p2Inf_ugc <- which(rGC[al[, "p2"]] == 1 & rGC.infTime[al[, "p2"]] < at &
+  p2Inf_urgc <- which(rGC[al[, "p2"]] == 1 & rGC.infTime[al[, "p2"]] < at &
                        uGC[al[, "p1"]] == 0 & al[, "ins"] %in% c(1, 2))
-  allActs_ugc <- c(p1Inf_ugc, p2Inf_ugc)
+  allActs_urgc <- c(p1Inf_urgc, p2Inf_urgc)
   
   # UAI modifier
-  uai_ugc <- al[, "uai"][allActs_ugc]
-  tprob_ugc <- rep(ugc.tprob, length(allActs_ugc))
-  tprob_ugc[uai_ugc == 0] <- tprob_ugc[uai_ugc == 0] * sti.cond.rr
+  uai_urgc <- al[, "uai"][allActs_urgc]
+  tprob_urgc <- rep(urgc.tprob, length(allActs_urgc))
+  tprob_urgc[uai_urgc == 0] <- tprob_urgc[uai_urgc == 0] * sti.cond.rr
   
   # Stochastic transmission
-  trans_ugc <- rbinom(length(allActs_ugc), 1, tprob_ugc)
+  trans_urgc <- rbinom(length(allActs_urgc), 1, tprob_urgc)
   
   # Determine the newly infected partner
-  idsInf_ugc <- NULL
-  if (sum(trans_ugc) > 0) {
-    transAL_ugc <- al[allActs_ugc[trans_ugc == 1],  , drop = FALSE]
-    idsInf_ugc <- unique(ifelse(uGC[transAL_ugc[, "p1"]] == 1,
-                                transAL_ugc[, "p2"], transAL_ugc[, "p1"]))
+  idsInf_urgc <- NULL
+  if (sum(trans_urgc) > 0) {
+    transAL_urgc <- al[allActs_urgc[trans_urgc == 1],  , drop = FALSE]
+    idsInf_urgc <- unique(ifelse(rGC[transAL_urgc[, "p1"]] == 1,
+                                transAL_urgc[, "p2"], transAL_urgc[, "p1"]))
   }
+
+  # Urethral infection from pharynx
+  # Requires: pGC in receptive man, and no uGC in insertive man
+  p1Inf_upgc <- which(pGC[al[, "p1"]] == 1 & pGC.infTime[al[, "p1"]] < at &
+                       uGC[al[, "p2"]] == 0 & al[, "ins"] %in% c(0, 2))
+  p2Inf_upgc <- which(pGC[al[, "p2"]] == 1 & pGC.infTime[al[, "p2"]] < at &
+                       uGC[al[, "p1"]] == 0 & al[, "ins"] %in% c(1, 2))
+  allActs_upgc <- c(p1Inf_upgc, p2Inf_upgc)
   
+  # UAI modifier
+  uai_upgc <- al[, "uai"][allActs_upgc]
+  tprob_upgc <- rep(upgc.tprob, length(allActs_upgc))
+  tprob_upgc[uai_upgc == 0] <- tprob_upgc[uai_upgc == 0] * sti.cond.rr
+  
+  # Stochastic transmission
+  trans_upgc <- rbinom(length(allActs_upgc), 1, tprob_upgc)
+  
+  # Determine the newly infected partner
+  idsInf_upgc <- NULL
+  if (sum(trans_upgc) > 0) {
+    transAL_upgc <- al[allActs_upgc[trans_upgc == 1],  , drop = FALSE]
+    idsInf_upgc <- unique(ifelse(pGC[transAL_upgc[, "p1"]] == 1,
+                                transAL_upgc[, "p2"], transAL_upgc[, "p1"]))
+  }
+    
   # Update attributes
+  idsInf_ugc <- unique(c(idsInf_urgc, idsInf_upgc))
   uGC[idsInf_ugc] <- 1
   uGC.infTime[idsInf_ugc] <- at
   uGC.sympt[idsInf_ugc] <- rbinom(length(idsInf_ugc), 1, ugc.sympt.prob)
-  uGC.timesInf[idsInf_ugc] <- uGC.timesInf[idsInf_ugc] + 1
-
+  uGC.timesInf[idsInf_ugc] <- uGC.timesInf[idsInf_ugc] + 1  
+  
   # Pharyngeal GC ------------------------------------------------------
   
-  # Requires: rGC in receptive man, and no uGC in insertive man
-  p1Inf_ugc <- which(rGC[al[, "p1"]] == 1 & rGC.infTime[al[, "p1"]] < at &
-                       uGC[al[, "p2"]] == 0 & al[, "ins"] %in% c(0, 2))
-  p2Inf_ugc <- which(rGC[al[, "p2"]] == 1 & rGC.infTime[al[, "p2"]] < at &
-                       uGC[al[, "p1"]] == 0 & al[, "ins"] %in% c(1, 2))
-  allActs_ugc <- c(p1Inf_ugc, p2Inf_ugc)
+  # pharyngeal infection from urethra
+  # Requires: uGC in insertive man, and no pGC in receptive man
+  p1Inf_pugc <- which(uGC[al[, "p1"]] == 1 & uGC.infTime[al[, "p1"]] < at &
+                       pGC[al[, "p2"]] == 0 & al[, "ins"] %in% c(1, 2))
+  p2Inf_pugc <- which(uGC[al[, "p2"]] == 1 & uGC.infTime[al[, "p2"]] < at &
+                       pGC[al[, "p1"]] == 0 & al[, "ins"] %in% c(0, 2))
+  allActs_pugc <- c(p1Inf_pugc, p2Inf_pugc)
   
   # UAI modifier
-  uai_ugc <- al[, "uai"][allActs_ugc]
-  tprob_ugc <- rep(ugc.tprob, length(allActs_ugc))
-  tprob_ugc[uai_ugc == 0] <- tprob_ugc[uai_ugc == 0] * sti.cond.rr
+  uai_pugc <- al[, "uai"][allActs_pugc]
+  tprob_pugc <- rep(pugc.tprob, length(allActs_pugc))
+  tprob_pugc[uai_pugc == 0] <- tprob_pugc[uai_pugc == 0] * sti.cond.rr
   
   # Stochastic transmission
-  trans_ugc <- rbinom(length(allActs_ugc), 1, tprob_ugc)
+  trans_pugc <- rbinom(length(allActs_pugc), 1, tprob_pugc)
   
   # Determine the newly infected partner
-  idsInf_ugc <- NULL
-  if (sum(trans_ugc) > 0) {
-    transAL_ugc <- al[allActs_ugc[trans_ugc == 1],  , drop = FALSE]
-    idsInf_ugc <- unique(ifelse(uGC[transAL_ugc[, "p1"]] == 1,
-                                transAL_ugc[, "p2"], transAL_ugc[, "p1"]))
+  idsInf_pugc <- NULL
+  if (sum(trans_pugc) > 0) {
+    transAL_pugc <- al[allActs_pugc[trans_pugc == 1],  , drop = FALSE]
+    idsInf_pugc <- unique(ifelse(uGC[transAL_pugc[, "p1"]] == 1,
+                                transAL_pugc[, "p2"], transAL_pugc[, "p1"]))
+  }
+
+  # pharyngeal infection from rectum
+  # Requires: rGC in receptive man, and no pGC in insertive man
+  p1Inf_prgc <- which(rGC[al[, "p1"]] == 1 & rGC.infTime[al[, "p1"]] < at &
+                        pGC[al[, "p2"]] == 0 & al[, "ins"] %in% c(0, 2))
+  p2Inf_prgc <- which(rGC[al[, "p2"]] == 1 & rGC.infTime[al[, "p2"]] < at &
+                        pGC[al[, "p1"]] == 0 & al[, "ins"] %in% c(1, 2))
+  allActs_prgc <- c(p1Inf_prgc, p2Inf_prgc)
+  
+  # UAI modifier
+  uai_prgc <- al[, "uai"][allActs_prgc]
+  tprob_prgc <- rep(prgc.tprob, length(allActs_prgc))
+  tprob_prgc[uai_prgc == 0] <- tprob_prgc[uai_prgc == 0] * sti.cond.rr
+  
+  # Stochastic transmission
+  trans_prgc <- rbinom(length(allActs_prgc), 1, tprob_prgc)
+  
+  # Determine the newly infected partner
+  idsInf_prgc <- NULL
+  if (sum(trans_prgc) > 0) {
+    transAL_prgc <- al[allActs_prgc[trans_prgc == 1],  , drop = FALSE]
+    idsInf_prgc <- unique(ifelse(rGC[transAL_prgc[, "p1"]] == 1,
+                                 transAL_prgc[, "p2"], transAL_prgc[, "p1"]))
   }
   
   # Update attributes
-  uGC[idsInf_ugc] <- 1
-  uGC.infTime[idsInf_ugc] <- at
-  uGC.sympt[idsInf_ugc] <- rbinom(length(idsInf_ugc), 1, ugc.sympt.prob)
-  uGC.timesInf[idsInf_ugc] <- uGC.timesInf[idsInf_ugc] + 1
+  idsInf_pgc <- unique(c(idsInf_prgc, idsInf_pugc))
+  pGC[idsInf_pgc] <- 1
+  pGC.infTime[idsInf_pgc] <- at
+  pGC.sympt[idsInf_pgc] <- rbinom(length(idsInf_pgc), 1, pgc.sympt.prob)
+  pGC.timesInf[idsInf_pgc] <- pGC.timesInf[idsInf_pgc] + 1
   
   # Set activity cessation attribute for newly infected -----------------
   
